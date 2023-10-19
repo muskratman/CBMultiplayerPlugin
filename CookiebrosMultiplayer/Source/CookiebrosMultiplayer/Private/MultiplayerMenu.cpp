@@ -6,8 +6,7 @@
 #include "CookieBrosSessionSubSys.h"
 #include "OnlineSessionSettings.h"
 
-void UMultiplayerMenu::MenuSetup(int32 NumberOfPublicConnections, FString TypeOfMatch,
-	TSoftObjectPtr<UWorld> Lobby)
+void UMultiplayerMenu::MenuSetup(int32 NumberOfPublicConnections, FString TypeOfMatch, TSoftObjectPtr<UWorld> Lobby)
 {
 	NumOfPublicConnections = NumberOfPublicConnections;
 	MatchType = TypeOfMatch;
@@ -16,8 +15,9 @@ void UMultiplayerMenu::MenuSetup(int32 NumberOfPublicConnections, FString TypeOf
 	AddToViewport();
 	SetVisibility(ESlateVisibility::Visible);
 	SetIsFocusable(true);
+	
 
-	if(const UWorld* World = GetWorld())
+	if(UWorld* World = GetWorld())
 	{
 		if (APlayerController* PlayerController = World->GetFirstPlayerController())
 		{
@@ -28,8 +28,9 @@ void UMultiplayerMenu::MenuSetup(int32 NumberOfPublicConnections, FString TypeOf
 			PlayerController->SetShowMouseCursor(true);
 		}
 	}
+	
 
-	if (const UGameInstance* GameInstance = GetGameInstance())
+	if (UGameInstance* GameInstance = GetGameInstance())
 		CookieBrosSessionSubSys = GameInstance->GetSubsystem<UCookieBrosSessionSubSys>();
 
 	//bind custom Delegates 
@@ -67,10 +68,6 @@ void UMultiplayerMenu::OnCreateSession(bool bWasSuccessful)
 {
 	if (bWasSuccessful)
 	{
-		if (GEngine)
-			GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Magenta,
-			FString(TEXT("Session created successfuly")));
-
 		if (UWorld* World = GetWorld())
 			World->ServerTravel(LobbyLevel);
 	}
@@ -115,7 +112,7 @@ void UMultiplayerMenu::OnJoinSession(EOnJoinSessionCompleteResult::Type Result)
 			SessionInterface->GetResolvedConnectString(NAME_GameSession, Address);
 
 			if (APlayerController* PlayerController = GetGameInstance()->GetFirstLocalPlayerController())
-				PlayerController->ClientTravel(Address, TRAVEL_Absolute);
+				PlayerController->ClientTravel(Address, ETravelType::TRAVEL_Absolute);
 		}
 	}
 
@@ -131,23 +128,18 @@ void UMultiplayerMenu::OnDestroySession(bool bWasSuccessful)
 {
 }
 
-
-
-
 void UMultiplayerMenu::HostButtClicked()
 {
 	HostButt->SetIsEnabled(false);
 	if (CookieBrosSessionSubSys)
-	{
 		CookieBrosSessionSubSys->CreateSession(NumOfPublicConnections, MatchType);
-	}
 }
 
 void UMultiplayerMenu::JoinButtClicked()
 {
 	JoinButt->SetIsEnabled(false);
 	if (CookieBrosSessionSubSys)
-		CookieBrosSessionSubSys->FindSession(10'000);
+		CookieBrosSessionSubSys->FindSessions(10'000);
 }
 
 void UMultiplayerMenu::MenuTearDown()
