@@ -14,7 +14,7 @@
 //
 //Custom Delegates to bind callback to MultiplayerMenu
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMultiplayerOnCreateSessionComplete, bool, bWasSuccessful);
-DECLARE_MULTICAST_DELEGATE_TwoParams(FMultiplayerOnFindSessionsComplete, const TArray<FOnlineSessionSearchResult>& SessionResult, bool bWasSuccessful);
+DECLARE_MULTICAST_DELEGATE_TwoParams(FMultiplayerOnFindSessionsComplete, const TArray<FOnlineSessionSearchResult>& SessionResults, bool bWasSuccessful);
 DECLARE_MULTICAST_DELEGATE_OneParam(FMultiplayerOnJoinSessionComplete, EOnJoinSessionCompleteResult::Type Result);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMultiplayerOnStartSessionComplete, bool, bWasSuccessful);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMultiplayerOnDestroySessionComplete, bool, bWasSuccessful);
@@ -28,7 +28,7 @@ public:
 
 	//
 	void CreateSession(int32 NumOfPublicConnections, FString MatchType);
-	void FindSession(int32 MaxSearchResults);
+	void FindSessions(int32 MaxSearchResults);
 	void JoinSession(const FOnlineSessionSearchResult& SessionResult);
 	void StartSession();
 	void DestroySession();
@@ -41,6 +41,12 @@ public:
 	FMultiplayerOnJoinSessionComplete MultiplayerOnJoinSessionComplete;
 	FMultiplayerOnStartSessionComplete MultiplayerOnStartSessionComplete;
 	FMultiplayerOnDestroySessionComplete MultiplayerOnDestroySessionComplete;
+
+	//////////////////////////////////////////
+	int32 DesiredNumPublicConnections{};
+	FString DesiredMatchType{};
+	//////////////////////////////////////////
+
 	
 protected:
 	
@@ -70,7 +76,7 @@ private:
 	FDelegateHandle DestroySessionCompleteDelegateHandle;
 
 
-	bool bCreateSessionOnDestroy{false};
+	bool bCreateSessionOnDestroy{ false };
 	int32 LastNumOfPublicConnections;
 	FString LastMatchType;
 };
