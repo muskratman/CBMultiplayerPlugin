@@ -13,32 +13,17 @@ UCookieBrosSessionSubSys::UCookieBrosSessionSubSys():
 	StartSessionCompleteDelegate(FOnStartSessionCompleteDelegate::CreateUObject(this, &ThisClass::OnStartSessionComplete)),
 	DestroySessionCompleteDelegate(FOnDestroySessionCompleteDelegate::CreateUObject(this, &ThisClass::OnDestroySessionComplete))
 {
-	IOnlineSubsystem* Subsystem = IOnlineSubsystem::Get();
-	if (Subsystem)
-	{
+	if (IOnlineSubsystem* Subsystem = IOnlineSubsystem::Get())
 		SessionInterface = Subsystem->GetSessionInterface();
-
-
-		FString Address;
-		if (SessionInterface->GetResolvedConnectString(NAME_GameSession, Address))
-		{
-			// if (GEngine)
-			// {
-			// 	GEngine->AddOnScreenDebugMessage(-1,15.f,FColor::Yellow,
-			// 		FString::Printf(TEXT("Connect string: %s"), *Address));
-			// }
-			if (APlayerController* PlayerController = GetGameInstance()->GetFirstLocalPlayerController())
-			{
-				PlayerController->ClientTravel(Address, TRAVEL_Absolute);
-			}
-		}
-	}
 }
 
 
 
 void UCookieBrosSessionSubSys::CreateSession(int32 NumOfPublicConnections, FString MatchType)
 {
+	DesiredNumPublicConnections = NumOfPublicConnections;
+	DesiredMatchType = MatchType;
+
 	if (!SessionInterface.IsValid())
 		return;
 
@@ -48,7 +33,6 @@ void UCookieBrosSessionSubSys::CreateSession(int32 NumOfPublicConnections, FStri
 		LastNumOfPublicConnections = NumOfPublicConnections;
 		LastMatchType = MatchType;
 		DestroySession();
-		// SessionInterface->DestroySession(NAME_GameSession);
 	}
 
 	//store the delegate in variable
@@ -64,15 +48,15 @@ void UCookieBrosSessionSubSys::CreateSession(int32 NumOfPublicConnections, FStri
 	LastSessionSettings->bUsesPresence = true;
 	LastSessionSettings->Set(FName("MatchType"), MatchType, EOnlineDataAdvertisementType::ViaOnlineServiceAndPing);
 	LastSessionSettings->BuildUniqueId = 1;
+	LastSessionSettings->bUseLobbiesIfAvailable = true;
 	
 	const ULocalPlayer* LocalPlayer = GetWorld()->GetFirstLocalPlayerFromController();
-	// SessionInterface->CreateSession(*LocalPlayer->GetPreferredUniqueNetId(), NAME_GameSession, *LastSessionSettings);
-
-
+	
 	if (!SessionInterface->CreateSession(*LocalPlayer->GetPreferredUniqueNetId(), NAME_GameSession, *LastSessionSettings))
 	{
 		//remove from delegate list if CreateSession failed
 		SessionInterface->ClearOnCreateSessionCompleteDelegate_Handle(CreateSessionCompleteDelegateHandle);
+
 		//broadcast custom Delegate if session wasn't created
 		MultiplayerOnCreateSessionComplete.Broadcast(false);
 	}
@@ -87,18 +71,17 @@ void UCookieBrosSessionSubSys::OnCreateSessionComplete(FName SessionName, bool b
 	MultiplayerOnCreateSessionComplete.Broadcast(bWasSuccessful);
 }
 
-void UCookieBrosSessionSubSys::FindSession(int32 MaxSearchResults)
+void UCookieBrosSessionSubSys::FindSessions(int32 MaxSearchResults)
 {
 	if (!SessionInterface.IsValid())
 		return;
 
 	FindSessionsCompleteDelegateHandle = SessionInterface->AddOnFindSessionsCompleteDelegate_Handle(FindSessionsCompleteDelegate);
 
-	LastSessionSearch = MakeShareable(new FOnlineSessionSearch);
+	LastSessionSearch = MakeShareable(new FOnlineSessionSearch());
 	LastSessionSearch->bIsLanQuery = IOnlineSubsystem::Get()->GetSubsystemName() == "NULL" ? true : false;
 	LastSessionSearch->MaxSearchResults = MaxSearchResults;
 	LastSessionSettings->bUseLobbiesIfAvailable = true;
-	// .Set(SEARCH_PRESENCE,  );
 	LastSessionSearch->QuerySettings.Set("PRESENCESEARCH", true, EOnlineComparisonOp::Equals);
 	
 	const ULocalPlayer* LocalPlayer = GetWorld()->GetFirstLocalPlayerFromController();
@@ -106,6 +89,7 @@ void UCookieBrosSessionSubSys::FindSession(int32 MaxSearchResults)
 	{
 		//remove from delegate list if FindSessions failed
 		SessionInterface->ClearOnFindSessionsCompleteDelegate_Handle(FindSessionsCompleteDelegateHandle);
+
 		//broadcast custom Delegate if session wasn't found
 		MultiplayerOnFindSessionsComplete.Broadcast(TArray<FOnlineSessionSearchResult>(), false);
 	}
